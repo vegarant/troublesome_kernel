@@ -587,9 +587,9 @@ class LearnableInverterFourier(torch.nn.Module):
 class Hadamard(LinearOperator):
     """ 2D discrete Hadamard transform.
 
-    Implements the complex operator C^(n1, n2) -> C^m
+    Implements the linear operator R^(n1, n2) -> R^m
     appling the (subsampled) Hadamard transform.
-    The adjoint is the conjugate transpose. The inverse is the same as adjoint.
+    The inverse is the same as adjoint.
 
 
     Parameters
@@ -630,7 +630,7 @@ class Hadamard(LinearOperator):
 class LearnableHadamard1D(torch.nn.Module):
     """ Learnable 1D discrete Hadamard transform.
 
-    Implements a complex operator C^n -> C^n, which is learnable but
+    Implements a linear operator R^n -> R^n, which is learnable but
     initialized as the Hadamard transform.
 
 
@@ -676,7 +676,7 @@ class LearnableHadamard1D(torch.nn.Module):
 class LearnableHadamard2D(torch.nn.Module):
     """ Learnable 2D discrete Hadamard transform.
 
-    Implements a complex operator C^(n1, n2) -> C^(n1, n2), which is learnable
+    Implements a linear operator R^(n1, n2) -> R^(n1, n2), which is learnable
     but initialized as the Hadamard transform. Operates along the last two
     dimensions of inputs with more axis.
 
@@ -712,7 +712,7 @@ class LearnableInverterHadamard(torch.nn.Module):
     The inversion is learnable and initialized as a 2D Hadamard 
     transform, realized as Kroneckers of 1D Hadamard inversions.
 
-    Implements a operator C^m -> C^(n1, n2).
+    Implements a operator R^m -> R^(n1, n2).
 
 
     Parameters
