@@ -4,9 +4,11 @@ import matplotlib as mpl
 import torch
 import torchvision
 import yaml
+from PIL import Image
+import numpy as np
 
 from extra_utils import (
-    read_count, 
+    cut_to_01, 
 )
 
 from os.path import join
@@ -24,10 +26,17 @@ mpl.use("agg")
 device = torch.device("cuda:0")
 torch.cuda.set_device(0)
 N = config.n[0]
-## TD: Update
-DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/ellipses/raw_data_radon_pt' 
-model_dir_name = 'model_unet_ell';
+
+
+# im_nbr = 5 (train), 101 (val)
+im_nbr = 5
+data_type = 'train'
+
+DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/CT_images/pt_files' 
+model_dir_name = 'model_unet_CT';
 path_weights =  f"{config.RESULTS_PATH}/{model_dir_name}/train_phase_2/model_weights.pt"
+
+fname_sample = os.path.join(DATA_PATH, data_type, f"sample_{im_nbr:05d}.pt") 
 
 with open(
     os.path.join(config.RESULTS_PATH, model_dir_name, "hyperparameters.yml"), 
@@ -68,9 +77,12 @@ it_net.eval()
 train_data = train_data("train", **train_data_params)
 val_data = val_data("val", **val_data_params)
 
-inp, tar = train_data[0];
-inp = inp.to(device).unsqueeze(0)
-tar = tar.to(device).unsqueeze(0)
+data_dict = torch.load(fname_sample)
+inp = data_dict['im_FBP']
+tar = data_dict['im']
+
+inp = inp.to(device).unsqueeze(0).unsqueeze(0)
+tar = tar.to(device).unsqueeze(0).unsqueeze(0)
 print('inp.device: ', inp.device)
 print('inp.shape: ', inp.shape)
 print('inp.dtype: ', inp.dtype)
@@ -87,9 +99,17 @@ error= l2_error(pred, tar, relative=True, squared=False
 print('error: ', error)
 
 
-np_pred = pred.squeeze().cpu().detach().numpy()
-np_inp = inp.squeeze().cpu().detach().numpy()
-np_tar = tar.squeeze().cpu().detach().numpy()
+np_pred = cut_to_01(pred.squeeze().cpu().detach().numpy())
+np_inp = cut_to_01(inp.squeeze().cpu().detach().numpy())
+np_tar = cut_to_01(tar.squeeze().cpu().detach().numpy())
+
+p_im_pred = Image.fromarray(np.uint8(255*np_pred), mode='L');
+p_im_tar = Image.fromarray(np.uint8(255*np_tar), mode='L');
+
+p_im_pred.save(f'plots/sample_{im_nbr:05d}_pred.png', 'png')
+p_im_tar.save(f'plots/sample_{im_nbr:05d}_gt.png', 'png')
+
+
 
 plt.figure();
 
@@ -108,7 +128,7 @@ plt.matshow(np_tar, cmap='gray', fignum=False);
 ax.axis('off')
 plt.title('Ground Truth');
 
-plt.savefig('plots/rec_ell.pdf', bbox_inches='tight')
+plt.savefig(f'plots/rec_ct_sample_{im_nbr:05d}.pdf', bbox_inches='tight')
 
 
 

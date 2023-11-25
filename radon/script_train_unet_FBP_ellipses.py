@@ -21,7 +21,7 @@ mpl.use("agg")
 device = torch.device("cuda:0")
 torch.cuda.set_device(0)
 N = config.n[0]
-DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/ellipses/raw_data_radon' 
+DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/ellipses/raw_data_radon_pt' 
 
 # ----- measurement configuration -----
 inverter = torch.nn.Identity()
@@ -34,13 +34,13 @@ subnet_params = {
     "in_channels": 1,
     "out_channels": 1,
     "drop_factor": 0.0,
-    "base_features": 32,
+    "base_features": 36,
 }
 subnet =  UNet 
 
 it_net_params = {
     "num_iter": 1,
-    "lam": 0.1,
+    "lam": 0.0,
     "lam_learnable": False,
     "final_dc": False,
     "resnet_factor": 1.0,
@@ -51,7 +51,6 @@ it_net_params = {
 # ----- training configuration -----
 mseloss = torch.nn.MSELoss(reduction="sum")
 
-
 def loss_func(pred, tar):
     
     return (
@@ -60,9 +59,7 @@ def loss_func(pred, tar):
     )
 
 
-model_nbr = 10; #read_count('./')
-model_dir_name = f'model_{model_nbr:03d}' 
-print('Model number: ', model_nbr)
+model_dir_name = f'model_unet_ell' 
 if not os.path.isdir(config.RESULTS_PATH):
     os.mkdir(config.RESULTS_PATH)
 if not os.path.isdir(join(config.RESULTS_PATH, model_dir_name)):
@@ -70,8 +67,8 @@ if not os.path.isdir(join(config.RESULTS_PATH, model_dir_name)):
 
 train_phases = 2
 train_params = {
-    "num_epochs": [500, 100],
-    "batch_size": [10, 10],
+    "num_epochs": [50, 10],
+    "batch_size": [40, 40],
     "loss_func": loss_func,
     "save_path": [
         os.path.join(
@@ -81,11 +78,11 @@ train_params = {
         )
         for i in range(train_phases)
     ],
-    "save_epochs":  50,
+    "save_epochs":  5,
     "optimizer": torch.optim.Adam,
     "optimizer_params": [
-        {"lr": 2e-4, "eps": 1e-5, "weight_decay": 1e-3},
-        {"lr": 5e-5, "eps": 1e-5, "weight_decay": 5e-4},
+        {"lr": 2e-4, "eps": 1e-5, "weight_decay": 1e-4},
+        {"lr": 5e-5, "eps": 1e-5, "weight_decay": 1e-4},
     ],
     "scheduler": torch.optim.lr_scheduler.StepLR,
     "scheduler_params": {"step_size": 1, "gamma": 1.0},
@@ -124,8 +121,6 @@ cgf['TRAIN']['train_transform'] = str(cgf['TRAIN']['train_transform'])
 cgf['TRAIN']['val_transform'] = str(cgf['TRAIN']['val_transform'])
 cgf['TRAIN']['optimizer'] = str(cgf['TRAIN']['optimizer'])
 cgf['TRAIN']['loss_func'] = None
-#cgf['IT_NET']['operator'] = str(cgf['IT_NET']['operator'])
-#cgf['IT_NET']['inverter'] = str(cgf['IT_NET']['inverter'])
 
 with open(
     os.path.join(config.RESULTS_PATH, model_dir_name, "hyperparameters.yml"), "w"
@@ -150,6 +145,9 @@ for i in range(train_phases):
         print(key + ": " + str(value))
 
     it_net.train_on(train_data, val_data, **train_params_cur)
+
+
+
 
 
 

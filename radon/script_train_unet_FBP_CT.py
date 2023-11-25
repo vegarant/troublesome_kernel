@@ -21,8 +21,8 @@ mpl.use("agg")
 device = torch.device("cuda:0")
 torch.cuda.set_device(0)
 N = config.n[0]
-## TD: Update
-DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/ellipses/raw_data_radon' 
+
+DATA_PATH = '/mn/kadingir/vegardantun_000000/nobackup/CT_images/pt_files' 
 
 # ----- measurement configuration -----
 inverter = torch.nn.Identity()
@@ -31,27 +31,10 @@ print(f'PID: {os.getpid()}')
 print('N: ', N)
 
 # ----- network configuration -----
-subnet_params = {
-    "in_channels": 1,
-    "out_channels": 1,
-    "drop_factor": 0.0,
-    "base_features": 32,
-}
 subnet =  UNet 
-
-it_net_params = {
-    "num_iter": 1,
-    "lam": 0.1,
-    "lam_learnable": False,
-    "final_dc": False,
-    "resnet_factor": 1.0,
-    "operator": None,
-    "inverter": inverter,
-}
 
 # ----- training configuration -----
 mseloss = torch.nn.MSELoss(reduction="sum")
-
 
 def loss_func(pred, tar):
     
@@ -61,9 +44,7 @@ def loss_func(pred, tar):
     )
 
 
-model_nbr = 10; #read_count('./')
-model_dir_name = f'model_{model_nbr:03d}' 
-print('Model number: ', model_nbr)
+model_dir_name = f'model_unet_CT' 
 if not os.path.isdir(config.RESULTS_PATH):
     os.mkdir(config.RESULTS_PATH)
 if not os.path.isdir(join(config.RESULTS_PATH, model_dir_name)):
@@ -71,7 +52,7 @@ if not os.path.isdir(join(config.RESULTS_PATH, model_dir_name)):
 
 train_phases = 2
 train_params = {
-    "num_epochs": [10,5], #[500, 100],
+    "num_epochs": [500,20], #[500, 100],
     "batch_size": [10, 10],
     "loss_func": loss_func,
     "save_path": [
@@ -82,7 +63,7 @@ train_params = {
         )
         for i in range(train_phases)
     ],
-    "save_epochs": 5, # 50
+    "save_epochs": 10, # 50
     "optimizer": torch.optim.Adam,
     "optimizer_params": [
         {"lr": 2e-4, "eps": 1e-5, "weight_decay": 1e-3},
@@ -112,6 +93,13 @@ val_data = Load_radon_dataset
 # ------ save hyperparameters -------
 #os.makedirs(train_params["save_path"][-1], exist_ok=True)
 
+fname_hyperparam = 'models/model_unet_ell/hyperparameters.yml'
+with open(fname_hyperparam, 'r') as file1:
+    cgf_old_model = yaml.load(file1, Loader=yaml.UnsafeLoader)
+
+it_net_params = cgf_old_model['IT_NET']
+subnet_params = cgf_old_model['SUBNET']
+
 cgf = {'SUBNET': subnet_params,
        'IT_NET': it_net_params,
        'TRAIN': train_params.copy(),
@@ -125,13 +113,12 @@ cgf['TRAIN']['train_transform'] = str(cgf['TRAIN']['train_transform'])
 cgf['TRAIN']['val_transform'] = str(cgf['TRAIN']['val_transform'])
 cgf['TRAIN']['optimizer'] = str(cgf['TRAIN']['optimizer'])
 cgf['TRAIN']['loss_func'] = None
-#cgf['IT_NET']['operator'] = str(cgf['IT_NET']['operator'])
-#cgf['IT_NET']['inverter'] = str(cgf['IT_NET']['inverter'])
 
 with open(
     os.path.join(config.RESULTS_PATH, model_dir_name, "hyperparameters.yml"), "w"
 ) as file1:
     yaml.dump(cgf, file1)
+
 
 # ------ construct network and train -----
 subnet = subnet(**subnet_params).to(device)
@@ -139,9 +126,10 @@ it_net = IterativeNet(subnet, **it_net_params).to(device)
 
 it_net.load_state_dict(
     torch.load(
-        f"{config.RESULTS_PATH}/model_010/model_weights.pt",
+        f"{config.RESULTS_PATH}/model_unet_ell/train_phase_2/model_weights.pt",
         map_location=torch.device(device),    
-    )
+    ),
+    strict=False
 )
 
 train_data = train_data("train", **train_data_params)

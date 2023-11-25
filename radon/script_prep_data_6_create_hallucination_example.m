@@ -7,6 +7,8 @@ src_data = sprintf('/mn/kadingir/vegardantun_000000/nobackup/CT_images/res_%d_pn
 src_mat = fullfile('/mn/sarpanitu/ansatte-u4/vegarant/cilib_data_final/radon_matrices', sprintf('radonMatrix2N%d_ang50.mat', N));
 src_hallu = sprintf('hallu_siam_%d_im_%03d.png', N, im_nbr);
 
+dest_data = '/mn/kadingir/vegardantun_000000/nobackup/CT_images/mat_files';
+
 load(src_mat); % A
 im = double(imread(src_data))/256;
 hallu = double(imread(src_hallu))/256;
@@ -14,10 +16,6 @@ hallu = hallu/4;
 [m, ~] = size(A);
 N2 = N*N;
 
-%l1 = round(0.25*N);
-%h1 = round(0.75*N);
-%hallu = zeros(N,N);
-%hallu(l1, l1:h1) = 0.5;
 y_h = A*hallu(:);
 y_im = A*im(:);
 
@@ -30,47 +28,61 @@ toc
 hallu_null = hallu-x_perp;
 nbr_angles = 50
 theta = linspace(0, 180*(1-1/nbr_angles), nbr_angles);
-FBP = @(y) iradon(reshape(y, m/nbr_angles, nbr_angles), theta);
+FBP = @(y) iradon(reshape(y, m/nbr_angles, nbr_angles), theta, 'linear', 'Ram-Lak', 1, N);
+
+im_FBP = FBP(y_im);
+fname_out_val = fullfile(dest_data, 'val', 'sample_00101.mat');
+save(fname_out_val, 'im', 'im_FBP');
 
 fig = figure('visible', 'off');
 subplot(231);
 imagesc(im); colormap('gray');
 title('Orignal image')
 axis('equal')
+axis('off')
 colorbar();
 
 subplot(232);
 imagesc(hallu); colormap('gray');
 title('Detail not in kernel')
 axis('equal')
+axis('off')
 colorbar();
 
 subplot(233);
 imagesc(FBP(y_im)); colormap('gray');
 title('FBP(Ax)')
 axis('equal')
+axis('off')
 
 subplot(234);
 imagesc(im+hallu_null); colormap('gray');
 title('Image + detail in kernel')
 axis('equal')
+axis('off')
 colorbar();
 
 subplot(235);
 imagesc(hallu_null); colormap('gray');
 title('Detail in in kernel')
 axis('equal')
+axis('off')
 colorbar();
 
 subplot(236);
 imagesc(FBP(y_im+A*hallu_null(:))); colormap('gray');
-title('FBP(A(x+x_det))')
+title('FBP(A(x+x_{\mathrm{det}}))')
 axis('equal')
+axis('off')
 
 saveas(fig, fullfile('plots',sprintf('exp1_hallu_N_%d.png', N)));
 
 norm(A*hallu(:))
 norm(A*hallu_null(:))
 
+im = im+hallu_null;
+im_FBP = FBP(y_im+A*hallu_null(:));
 
+fname_out = fullfile(dest_data, 'train', sprintf('sample_%05d.mat', im_nbr));
+save(fname_out, 'im', 'im_FBP');
 

@@ -93,10 +93,10 @@ class InvNet(torch.nn.Module, metaclass=ABCMeta):
                 "loss": loss.item(),
                 "val_loss": v_loss.item(),
                 "rel_l2_error": l2_error(
-                    pred, to_complex(tar), relative=True, squared=False
+                    pred, tar, relative=True, squared=False
                 )[0].item(),
                 "val_rel_l2_error": l2_error(
-                    v_pred, to_complex(v_tar), relative=True, squared=False
+                    v_pred, v_tar, relative=True, squared=False
                 )[0].item(),
             },
             ignore_index=True,

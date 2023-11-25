@@ -104,7 +104,7 @@ class Load_radon_dataset(torch.utils.data.Dataset):
         else:
             self.path = None
         if self.path is not None:
-            self.filenames = glob.glob(join(self.path, '*.mat'))
+            self.filenames = glob.glob(join(self.path, '*.pt'))
         else:
             self.filenames = [];
    
@@ -117,30 +117,16 @@ class Load_radon_dataset(torch.utils.data.Dataset):
         self.count = 0
         return self
 
-    def __next__(self):
-        if self.path is None:
-            raise StopIteration
-        if self.count < self.data_size:
-            fname = self.filenames[self.count]
-            self.count += 1
-            data_dict = scipy.io.loadmat(fname)
-            im = data_dict['im'] # The ground truth image
-            im_FBP = data_dict['im_FBP'] # The filter backprojection of 
-                                         # the sinogram measurements
-
-            return torch.tensor(im_FBP, dtype=torch.float), torch.tensor(im, dtype=torch.float)
-        else:
-            raise StopIteration
 
     def __getitem__(self, idx):
         if idx < self.data_size:
             fname = self.filenames[idx]
-            data_dict = scipy.io.loadmat(fname)
-            im = data_dict['im'] # The ground truth image
+            data_dict = torch.load(fname)
+            im = data_dict['im']         # The ground truth image
             im_FBP = data_dict['im_FBP'] # The filter backprojection of 
                                          # the sinogram measurements
-            t_im = torch.unsqueeze(torch.tensor(im, dtype=torch.float), 0)
-            t_im_FBP = torch.unsqueeze(torch.tensor(im_FBP, dtype=torch.float), 0)
+            t_im = torch.unsqueeze(im, 0)
+            t_im_FBP = torch.unsqueeze(im_FBP, 0)
             return t_im_FBP, t_im
         else:
             raise IndexError('Out of range')
